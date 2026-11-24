@@ -16,6 +16,7 @@
 │   └── vite.config.ts        dev server 配置（open: false）
 ├── backend/                  FastAPI（Python） 后端
 │   ├── app/routers/resource.py  通用查询/导出/登记/动作接口
+│   ├── app/routers/gap_evidence.py  缺测证据包专用工作流接口
 │   ├── app/services/<key>.py    每个模块独立领域逻辑
 │   ├── app/services/base.py     共享服务骨架
 │   └── app/store.py          内存数据仓库与示例数据
@@ -68,6 +69,23 @@ npm run dev
 | 序列导出 | `series_export` | 导出任务 | 导出编号、测点范围、时间范围 |
 | 时序质量 | `series_quality` | 质量报告 | 报告编号、测点编号、统计窗口 |
 | 序列快照 | `series_snapshot` | 版本快照 | 快照编号、口径说明、测点范围 |
+| 缺测证据包 | `gap_evidence` | 缺测证据包 | 证据包编号、报告编号、包版本、上送批次、待派缺口 |
+
+### 缺测证据包（离线逐点复算）
+
+`gap_evidence` 按告警编号（质量报告）交付可离线复算的缺测证据包，专用路由前缀
+`/api/gap_evidence`：
+
+- `POST /build`、`POST /prepare` + `POST /{id}/freeze`：固化原始时刻、标定单位、
+  预期间隔、空缺区间与采集血缘；包内有效观测强制来自同一上送批次。
+- `POST /{id}/recompute` 与包内 `recompute.py`：同一口径离线逐点复算，
+  上一版证据包始终可按原口径复核。
+- `POST /{id}/claims`、`POST /claims/{no}/issue`、`POST /{id}/receipts`：
+  续领原检查 / 开始新核对需显式声明；续领申请在新包固化前只能创建、固化后才能发出；
+  重领保留下载书签，已处置缺口不重复登记。
+- `POST /{id}/maintenance`：检修回执绑定实际核对缺点与报告版本。
+- `POST /{id}/reviews`：异常复查只允许在原核查范围外扩段，原未核查整段保持可复查。
+- `POST /{id}/dispatch` 与 `GET /{id}/download`：导出实际派给现场的范围并下载真实 zip。
 
 ## 约定
 
